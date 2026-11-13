@@ -1,0 +1,29 @@
+services:
+  api:
+    build: ./backend
+    env_file: .env
+    depends_on: [db, redis]
+    ports: ["8000:8000"]
+    volumes: ["./backend/app:/app/app"]
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    mem_limit: 384m
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 100mb --maxmemory-policy allkeys-lru
+    mem_limit: 128m
+
+  nginx:
+    image: nginx:alpine
+    ports: ["80:80", "443:443"]
+    volumes: ["./nginx:/etc/nginx/conf.d"]
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  chromadata:
