@@ -2,21 +2,40 @@ services:
   api:
     build: ./backend
     env_file: .env
-    depends_on: [db, redis]
+    depends_on: 
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     ports: ["8000:8000"]
     volumes: ["./backend/app:/app/app"]
 
   db:
     image: postgres:15-alpine
     environment:
+      POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes: ["pgdata:/var/lib/postgresql/data"]
+    ports: ["5432:5432"]
     mem_limit: 384m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
     command: redis-server --maxmemory 100mb --maxmemory-policy allkeys-lru
+    ports: ["6379:6379"]
     mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   nginx:
     image: nginx:alpine
